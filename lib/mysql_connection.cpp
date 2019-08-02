@@ -2,6 +2,7 @@
 #include "cpp.h"
 #include "SpookyV2.h"
 #include <fcntl.h>
+#include <iostream>
 
 extern const CHARSET_INFO * proxysql_find_charset_nr(unsigned int nr);
 
@@ -1586,22 +1587,25 @@ bool MySQL_Connection::IsKeepMultiplexEnabledVariables(char *query_digest_text) 
     if (query_digest_text==NULL) return true;
     
     char *query_digest_text_filter_select;
-    unsigned long query_digest_text_len=strlen(query_digest_text);
-    if (strncasecmp(query_digest_text,"SELECT ",strlen("SELECT "))==0){
-        query_digest_text_filter_select=(char*)malloc(query_digest_text_len-7+1);
-        memcpy(query_digest_text_filter_select,&query_digest_text[7],query_digest_text_len-7);
-        query_digest_text_filter_select[query_digest_text_len-7]='\0';
+    unsigned long query_digest_text_len=strlen(query_digest_text);   // query_digest_text_len = long the length of the query digest
+    if (strncasecmp(query_digest_text,"SELECT ",strlen("SELECT "))==0){  //strncasecmp() Compare Strings without Case Sensitivity
+        query_digest_text_filter_select=(char*)malloc(query_digest_text_len-7+1); // Create a continer for the query without the leading "SELECT"
+        memcpy(query_digest_text_filter_select,&query_digest_text[7],query_digest_text_len-7); // copy the query text into that container starting from position 7 - end
+        query_digest_text_filter_select[query_digest_text_len-7]='\0'; //append a null termination charachter
     }
     //filter @@session. and @@
+
+    cout << "Before: " << query_digest_text_filter_select << endl;
     char *match=NULL;
-    while ((match = strcasestr(query_digest_text_filter_select,"@@session."))) {
+    while ((match = strcasestr(query_digest_text_filter_select,"@@session."))) { //looks for @@session. in query_digest_text_filter_select
         *match = '\0';
-        strcat(query_digest_text_filter_select, match+strlen("@@session."));
+        strcat(query_digest_text_filter_select, match+strlen("@@session.")); // ?
     }
     while ((match = strcasestr(query_digest_text_filter_select,"@@"))) {
         *match = '\0';
         strcat(query_digest_text_filter_select, match+strlen("@@"));
     }
+    cout << "After: " << query_digest_text_filter_select << endl;
     
     std::vector<char*>query_digest_text_filter_select_v;
     char* query_digest_text_filter_select_tok=strtok(query_digest_text_filter_select, ",");
